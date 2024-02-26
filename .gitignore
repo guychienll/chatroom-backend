@@ -1,0 +1,12 @@
+# output
+node_modules/
+dist/
+
+# others
+/.vscode
+
+# firebase credentials
+service-account.json
+
+# environment variables
+.env
