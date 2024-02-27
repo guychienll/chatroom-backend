@@ -1,46 +1,40 @@
-import AWS from "aws-sdk";
+import { S3Client } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
+
 import busboy from "busboy";
 import authRouter from "./auth";
 
-AWS.config.getCredentials((err) => {
-  if (err) console.error(err.stack);
-});
-AWS.config.update({ region: "ap-east-1" });
-const s3 = new AWS.S3({ apiVersion: "2006-03-01" });
+const client = new S3Client({ region: "ap-east-1" });
 
 const use = (app) => {
   app.use("/auth", authRouter);
+
   app.post("/upload", (req, res) => {
     const bb = busboy({ headers: req.headers });
 
-    bb.on("file", (name, file, info) => {
-      const { filename, encoding, mimeType } = info;
-      console.log(
-        `File [${name}]: filename: %j, encoding: %j, mimeType: %j`,
-        filename,
-        encoding,
-        mimeType
-      );
+    bb.on("file", async (_name, file, info) => {
+      const { filename } = info;
+      try {
+        const upload = new Upload({
+          client,
+          params: {
+            Bucket: "chatroom.guychienll.dev",
+            Key: filename,
+            Body: file,
+          },
+        });
 
-      s3.upload(
-        {
-          Bucket: "chatroom.guychienll.dev",
-          Body: file,
-          Key: filename,
-        },
-        (err, data) => {
-          if (err) {
-            console.log("Error", err);
-          }
+        upload.on("httpUploadProgress", (progress) => {
+          console.log(progress);
+        });
 
-          if (data) {
-            console.log("Upload Success", data.Location);
-            res.send({
-              file_url: data.Location,
-            });
-          }
-        }
-      );
+        const resp = await upload.done();
+        res.send({
+          file_url: resp.Location,
+        });
+      } catch (e) {
+        console.log(e);
+      }
     });
     req.pipe(bb);
   });
