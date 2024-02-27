@@ -23,12 +23,10 @@ class MailService {
 
   compileTemplate(filename, data) {
     const file = fs.readFileSync(
-      path.resolve(__dirname, `../templates/${filename}`)
+      path.resolve(path.dirname(""), `../backend/src/templates/${filename}`)
     );
 
-    const source = buffer.Buffer.from(file.toString(), "base64").toString(
-      "utf-8"
-    );
+    const source = buffer.Buffer.from(file as any, "base64").toString("utf-8");
 
     return _.template(source, {})(data);
   }

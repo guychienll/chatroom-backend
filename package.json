@@ -47,6 +47,7 @@
     "@babel/plugin-proposal-decorators": "^7.23.9",
     "@babel/preset-env": "^7.23.9",
     "@types/lodash": "^4.14.202",
+    "@types/node": "^20.11.20",
     "@types/nodemailer": "^6.4.14",
     "@webpack-cli/generators": "^3.0.7",
     "babel-loader": "^9.1.3",

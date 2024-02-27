@@ -36,7 +36,7 @@ class AuthController {
       throw new HttpError("Already Get One OTP", 429);
     }
 
-    if (await this.userService.getUser(req.session.username)) {
+    if (await this.userService.getUser(username)) {
       throw new HttpError("User Already Exist", 403);
     }
 
@@ -76,7 +76,7 @@ class AuthController {
   async register(req: IRequest<RegisterDto>, res) {
     const { username, password } = req.body;
 
-    if (await this.userService.getUser(req.session.username)) {
+    if (await this.userService.getUser(username)) {
       throw new HttpError("User Already Exist", 403);
     }
 
