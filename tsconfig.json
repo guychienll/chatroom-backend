@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "module": "ES6",
-    "target": "ES6",
+    "target": "ES5",
+    "module": "ESNext",
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
     "paths": {
       "@/*": ["./src/*"]
     },

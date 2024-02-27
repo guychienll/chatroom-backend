@@ -4,7 +4,7 @@ const nodeExternals = require("webpack-node-externals");
 const isProduction = process.env.NODE_ENV == "production";
 
 const config = {
-  entry: "./src/server.js",
+  entry: "./src/server.ts",
   stats: "errors-only",
   output: {
     path: path.resolve(__dirname, "dist"),
@@ -17,6 +17,7 @@ const config = {
     port: 8000,
   },
   resolve: {
+    extensions: [".ts", ".js", ".json"],
     alias: {
       "@": path.resolve(__dirname, "src/"),
     },
@@ -25,9 +26,16 @@ const config = {
   module: {
     rules: [
       {
-        test: /\.(js)$/i,
+        test: /\.(js|ts)$/i,
         exclude: [/node_modules/],
-        loader: "babel-loader",
+        use: [
+          {
+            loader: "babel-loader",
+          },
+          {
+            loader: "ts-loader",
+          },
+        ],
       },
     ],
   },

@@ -37,10 +37,10 @@ app.use(
 
 router.use(app);
 
-app.use(function (err, _req, res, _next) {
+app.use((err, _req, res, _next) => {
   err && console.log(err);
-  res.status(err.status).send({
-    code: err.message,
+  res.status(err.status || 500).send({
+    code: err.message || "Internal Server Error",
   });
 });
 

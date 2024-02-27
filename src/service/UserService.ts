@@ -3,8 +3,11 @@ import db from "@/db";
 export default class UserService {
   constructor() {}
 
-  addUser(user) {
-    this.users.push(user);
+  async addUser(user) {
+    await db.collection("user").add({
+      username: user.username,
+      password: user.password,
+    });
   }
 
   async getUser(username) {
