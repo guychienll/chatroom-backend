@@ -13,9 +13,6 @@ const config = {
   devtool: "source-map",
   externalsPresets: { node: true },
   externals: [nodeExternals()],
-  devServer: {
-    port: 8000,
-  },
   resolve: {
     extensions: [".ts", ".js", ".json"],
     alias: {

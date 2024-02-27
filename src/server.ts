@@ -7,6 +7,11 @@ import cors from "cors";
 import express from "express";
 import session from "express-session";
 import SocketServer from "ws";
+import source from "source-map-support";
+
+source.install({
+  environment: "node",
+});
 
 const app = express();
 
