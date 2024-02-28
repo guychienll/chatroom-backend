@@ -1,4 +1,4 @@
-import CONFIG from "@/config";
+import Env from "@/config";
 import buffer from "buffer";
 import fs from "fs";
 import _ from "lodash";
@@ -15,8 +15,8 @@ class MailService {
       port: 465,
       secure: true,
       auth: {
-        user: CONFIG.SMTP_USER,
-        pass: CONFIG.SMTP_PASS,
+        user: Env.SMTP_USER,
+        pass: Env.SMTP_PASS,
       },
     });
   }

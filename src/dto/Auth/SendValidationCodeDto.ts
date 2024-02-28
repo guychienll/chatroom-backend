@@ -1,12 +1,12 @@
-import { IsEmail } from "class-validator";
+import { IsEmail, IsString } from "class-validator";
+import { OtpType } from "@/types/OtpType";
 
 class SendValidationCodeRequest {
   @IsEmail()
   username: string;
 
-  constructor(props) {
-    this.username = props.username;
-  }
+  @IsString()
+  otpType: OtpType;
 }
 
 export default SendValidationCodeRequest;

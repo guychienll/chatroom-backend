@@ -1,4 +1,4 @@
-import CONFIG from "@/config";
+import Env from "@/config";
 import db from "@/db";
 import * as router from "@/router";
 import bodyParser from "body-parser";
@@ -6,12 +6,8 @@ import chalk from "chalk";
 import cors from "cors";
 import express from "express";
 import session from "express-session";
+import "source-map-support/register";
 import SocketServer from "ws";
-import source from "source-map-support";
-
-source.install({
-  environment: "node",
-});
 
 const app = express();
 
@@ -19,10 +15,10 @@ app.use(bodyParser.json());
 
 app.use(
   session({
-    secret: CONFIG.SESSION_SECRET,
+    secret: Env.SESSION_SECRET,
     cookie: {
       secure: false,
-      maxAge: 60000,
+      maxAge: 60 * 1000,
       httpOnly: true,
     },
     rolling: true,
@@ -35,7 +31,7 @@ app.use(
   cors({
     origin: ["http://localhost:3000"],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
@@ -49,9 +45,9 @@ app.use((err, _req, res, _next) => {
   });
 });
 
-const server = app.listen(CONFIG.PORT, () => {
+const server = app.listen(Env.PORT, () => {
   console.log(chalk.white.bold.italic(`\n=============================`));
-  console.log(chalk.white.bold.italic(`LISTENING ON : ${CONFIG.PORT}`));
+  console.log(chalk.white.bold.italic(`LISTENING ON : ${Env.PORT}`));
   console.log(chalk.white.bold.italic(`=============================\n`));
 });
 
