@@ -8,6 +8,8 @@ const router = Router();
 const userController = new UserController(new UserService());
 
 router.get("/profile", userController.profile);
-router.get("/update", userController.update);
+router.post("/update", userController.update);
+router.post("/get-users", userController.getUsers);
+router.get("/get-user", userController.getUser);
 
 export default router;

@@ -6,9 +6,10 @@ class RegisterDto {
 
   @Length(8, 20)
   password: string;
-  constructor(props) {
-    this.username = props.username;
-    this.password = props.password;
+
+  constructor({ username, password }) {
+    this.username = username;
+    this.password = password;
   }
 }
 

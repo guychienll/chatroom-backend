@@ -11,6 +11,7 @@ router.post("/generate-otp", authController.generateOtp);
 router.post("/consume-otp", authController.consumeOtp);
 router.post("/register", authController.register);
 router.post("/login", authController.login);
+router.get("/logout", authController.logout);
 router.post("/update-password", authController.updatePassword);
 
 export default router;

@@ -1,6 +1,7 @@
 import Env from "@/config";
 import authRouter from "@/router/authRouter";
 import userRouter from "@/router/userRouter";
+import chatRouter from "@/router/chatRouter";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import busboy from "busboy";
@@ -10,6 +11,7 @@ const client = new S3Client({ region: "ap-east-1" });
 const use = (app) => {
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
+  app.use("/chat", chatRouter);
 
   app.post("/upload", (req, res) => {
     const bb = busboy({ headers: req.headers });

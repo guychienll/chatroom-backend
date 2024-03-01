@@ -1,8 +1,8 @@
 import ErrorHandler from "@/decorator/ErrorHandler";
 import LoginDto from "@/dto/Auth/LoginDto";
 import RegisterDto from "@/dto/Auth/RegisterDto";
-import GenerateOtpDto from "@/dto/Auth/SendValidationCodeDto";
-import ConsumeOtpDto from "@/dto/Auth/ValidCodeDto";
+import GenerateOtpDto from "@/dto/Auth/GenerateOtpDto";
+import ConsumeOtpDto from "@/dto/Auth/ConsumeOtpDto";
 import HttpError from "@/model/HttpError";
 import MailService from "@/service/MailService";
 import UserService from "@/service/UserService";
@@ -24,11 +24,16 @@ class AuthController {
     this.register = this.register.bind(this);
     this.login = this.login.bind(this);
     this.updatePassword = this.updatePassword.bind(this);
+    this.logout = this.logout.bind(this);
   }
 
   @ErrorHandler()
   async generateOtp(req: Request<GenerateOtpDto>, res) {
-    const { username, otpType } = req.body;
+    const reqBody = new GenerateOtpDto(req.body);
+    if ((await validate(reqBody)).length > 0) {
+      throw new HttpError("Invalid Input", 400);
+    }
+    const { username, otpType } = reqBody;
 
     if (otpType === OtpType.FORGET_PASSWORD) {
       const user = await this.userService.get(username);
@@ -59,15 +64,21 @@ class AuthController {
 
     req.session.username = username;
     req.session.otp = otp;
-    req.session.otpType = req.body.otpType;
-    req.session.cookie.maxAge = 60 * 1000 * 2;
+    req.session.otpType = reqBody.otpType;
+    req.session.cookie.maxAge = 60 * 1000 * 1;
 
-    res.status(200).send(req.body);
+    res.status(200).send(reqBody);
   }
 
   @ErrorHandler()
   async consumeOtp(req: Request<ConsumeOtpDto>, res) {
-    const { otp, type } = req.body;
+    const reqBody = new ConsumeOtpDto(req.body);
+
+    if ((await validate(reqBody)).length > 0) {
+      throw new HttpError("Invalid Input", 400);
+    }
+
+    const { otp, type } = reqBody;
 
     if (!!req.session.otpType && req.session.otpType !== type) {
       throw new HttpError("invalid token", 401);
@@ -81,12 +92,18 @@ class AuthController {
     delete req.session.otp;
     delete req.session.otpType;
 
-    res.status(200).send(req.body);
+    res.status(200).send(reqBody);
   }
 
   @ErrorHandler()
   async updatePassword(req: Request<UpdatePasswordDto>, res) {
-    const { password, otp, otpType } = req.body;
+    const reqBody = new UpdatePasswordDto(req.body);
+
+    if ((await validate(reqBody)).length > 0) {
+      throw new HttpError("Invalid Input", 400);
+    }
+
+    const { password, otp, otpType } = reqBody;
     const username = req.session.username;
 
     if (!!req.session.otpType && req.session.otpType !== otpType) {
@@ -97,7 +114,7 @@ class AuthController {
       throw new HttpError("OTP Expired or Invalid", 498);
     }
 
-    await this.userService.update(username, password);
+    await this.userService.updatePassword(username, password);
 
     await this.mailService.sendMail({
       to: username,
@@ -118,7 +135,13 @@ class AuthController {
 
   @ErrorHandler()
   async register(req: Request<RegisterDto>, res) {
-    const { username, password } = req.body;
+    const reqBody = new RegisterDto(req.body);
+
+    if ((await validate(reqBody)).length > 0) {
+      throw new HttpError("Invalid Input", 400);
+    }
+
+    const { username, password } = reqBody;
 
     if (await this.userService.get(username)) {
       throw new HttpError("User Already Exist", 403);
@@ -138,18 +161,17 @@ class AuthController {
       }),
     });
 
-    res.status(200).send(req.body);
+    res.status(200).send(reqBody);
   }
 
   @ErrorHandler()
   async login(req: Request<LoginDto>, res) {
-    const loginDto = req.body;
-
-    if ((await validate(loginDto)).length > 0) {
+    const reqBody = new LoginDto(req.body);
+    if ((await validate(reqBody)).length > 0) {
       throw new HttpError("Invalid Input", 400);
     }
 
-    const { username, password } = loginDto;
+    const { username, password } = reqBody;
 
     const user = await this.userService.get(username);
 
@@ -161,10 +183,19 @@ class AuthController {
       throw new HttpError("Invalid account or password", 401);
     }
 
-    req.session.username = user.username;
+    req.session.profile = {
+      username: user.username,
+    };
     req.session.cookie.maxAge = 1000 * 60 * 60 * 24;
 
-    res.status(200).send(req.body);
+    res.status(200).send(reqBody);
+  }
+
+  @ErrorHandler()
+  async logout(req, res) {
+    req.session.destroy();
+
+    res.status(200).send({});
   }
 }
 
