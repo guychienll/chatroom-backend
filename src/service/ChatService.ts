@@ -1,4 +1,5 @@
 import db from "@/db";
+import Room from "@/types/Room";
 import { v4 as uuid } from "uuid";
 
 class ChatService {
@@ -35,7 +36,12 @@ class ChatService {
   }
 
   async getRoom(id) {
-    return (await db.collection("room").doc(id).get()).data();
+    const room = (await db.collection("room").doc(id).get()).data();
+    if (room) {
+      return room as Room;
+    } else {
+      return null;
+    }
   }
 
   async createRoom(room) {
