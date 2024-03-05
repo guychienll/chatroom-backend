@@ -1,14 +1,20 @@
 import ErrorHandler from "@/decorator/ErrorHandler";
+import RequestBodyValidator from "@/decorator/Validator";
+import ConsumeOtpDto from "@/dto/Auth/ConsumeOtpDto";
+import GenerateOtpDto from "@/dto/Auth/GenerateOtpDto";
 import LoginDto from "@/dto/Auth/LoginDto";
 import RegisterDto from "@/dto/Auth/RegisterDto";
-import GenerateOtpDto from "@/dto/Auth/GenerateOtpDto";
-import ConsumeOtpDto from "@/dto/Auth/ConsumeOtpDto";
-import HttpError from "@/model/HttpError";
+import {
+  ConflictError,
+  EntityNotFoundError,
+  TooManyRequestsError,
+  UnauthorizedError,
+} from "@/model/HttpError";
 import MailService from "@/service/MailService";
 import UserService from "@/service/UserService";
-import { OtpType } from "@/types/OtpType";
-import { Request } from "@/types/Request";
-import { validate } from "class-validator";
+import { Request, Response } from "@/types/Http";
+import { MailTemplate } from "@/types/Mail";
+import { OtpType } from "@/types/Auth";
 import OtpGenerator from "otp-generator";
 import UpdatePasswordDto from "../dto/Auth/UpdatePasswordDto";
 
@@ -28,23 +34,20 @@ class AuthController {
   }
 
   @ErrorHandler()
-  async generateOtp(req: Request<GenerateOtpDto>, res) {
-    const reqBody = new GenerateOtpDto(req.body);
-    if ((await validate(reqBody)).length > 0) {
-      throw new HttpError("Invalid Input", 400);
-    }
-    const { username, otpType } = reqBody;
+  @RequestBodyValidator(GenerateOtpDto)
+  async generateOtp(req: Request<GenerateOtpDto>, res: Response) {
+    const { username, otpType } = req.body;
 
     if (otpType === OtpType.FORGET_PASSWORD) {
-      const user = await this.userService.get(username);
+      const user = await this.userService.getUser(username);
 
       if (!user) {
-        throw new HttpError("User Not Found", 404);
+        throw new EntityNotFoundError();
       }
     }
 
     if (req.session.otp) {
-      throw new HttpError("Already Get One OTP", 429);
+      throw new TooManyRequestsError();
     }
 
     const otp = OtpGenerator.generate(6, {
@@ -56,62 +59,52 @@ class AuthController {
     await this.mailService.sendMail({
       to: username,
       subject: "[ChatRoom] 驗證信",
-      html: this.mailService.compileTemplate("otp.html", {
-        name: username,
+      html: this.mailService.compileTemplate(MailTemplate.otp, {
+        username,
         otp,
       }),
     });
 
     req.session.username = username;
     req.session.otp = otp;
-    req.session.otpType = reqBody.otpType;
+    req.session.otpType = otpType;
     req.session.cookie.maxAge = 60 * 1000 * 1;
 
-    res.status(200).send(reqBody);
+    res.status(200).send(req.body);
   }
 
   @ErrorHandler()
-  async consumeOtp(req: Request<ConsumeOtpDto>, res) {
-    const reqBody = new ConsumeOtpDto(req.body);
-
-    if ((await validate(reqBody)).length > 0) {
-      throw new HttpError("Invalid Input", 400);
-    }
-
-    const { otp, type } = reqBody;
+  @RequestBodyValidator(ConsumeOtpDto)
+  async consumeOtp(req: Request<ConsumeOtpDto>, res: Response) {
+    const { otp, type } = req.body;
 
     if (!!req.session.otpType && req.session.otpType !== type) {
-      throw new HttpError("invalid token", 401);
+      throw new UnauthorizedError();
     }
 
     if (!req.session.otp || req.session.otp !== otp) {
-      throw new HttpError("OTP Expired or Invalid", 498);
+      throw new UnauthorizedError();
     }
 
     delete req.session.username;
     delete req.session.otp;
     delete req.session.otpType;
 
-    res.status(200).send(reqBody);
+    res.status(200).send(req.body);
   }
 
   @ErrorHandler()
-  async updatePassword(req: Request<UpdatePasswordDto>, res) {
-    const reqBody = new UpdatePasswordDto(req.body);
-
-    if ((await validate(reqBody)).length > 0) {
-      throw new HttpError("Invalid Input", 400);
-    }
-
-    const { password, otp, otpType } = reqBody;
+  @RequestBodyValidator(UpdatePasswordDto)
+  async updatePassword(req: Request<UpdatePasswordDto>, res: Response) {
+    const { password, otp, otpType } = req.body;
     const username = req.session.username;
 
     if (!!req.session.otpType && req.session.otpType !== otpType) {
-      throw new HttpError("invalid token", 401);
+      throw new UnauthorizedError();
     }
 
     if (!req.session.otp || req.session.otp !== otp) {
-      throw new HttpError("OTP Expired or Invalid", 498);
+      throw new UnauthorizedError();
     }
 
     await this.userService.updatePassword(username, password);
@@ -119,9 +112,10 @@ class AuthController {
     await this.mailService.sendMail({
       to: username,
       subject: "[ChatRoom] 密碼變更通知信",
-      html: this.mailService.compileTemplate("update-password-success.html", {
-        name: username,
-      }),
+      html: this.mailService.compileTemplate(
+        MailTemplate.update_password_success,
+        { username }
+      ),
     });
 
     delete req.session.username;
@@ -129,22 +123,17 @@ class AuthController {
     delete req.session.otpType;
 
     res.status(200).send({
-      message: "Password Updated",
+      message: "success",
     });
   }
 
   @ErrorHandler()
-  async register(req: Request<RegisterDto>, res) {
-    const reqBody = new RegisterDto(req.body);
+  @RequestBodyValidator(RegisterDto)
+  async register(req: Request<RegisterDto>, res: Response) {
+    const { username, password } = req.body;
 
-    if ((await validate(reqBody)).length > 0) {
-      throw new HttpError("Invalid Input", 400);
-    }
-
-    const { username, password } = reqBody;
-
-    if (await this.userService.get(username)) {
-      throw new HttpError("User Already Exist", 403);
+    if (await this.userService.getUser(username)) {
+      throw new ConflictError();
     }
 
     await this.userService.add({
@@ -155,32 +144,28 @@ class AuthController {
     await this.mailService.sendMail({
       to: username,
       subject: "[ChatRoom] 註冊成功通知",
-      html: this.mailService.compileTemplate("register-success.html", {
+      html: this.mailService.compileTemplate(MailTemplate.register_success, {
         name: username.split("@")[0],
         email: username,
       }),
     });
 
-    res.status(200).send(reqBody);
+    res.status(200).send(req.body);
   }
 
   @ErrorHandler()
-  async login(req: Request<LoginDto>, res) {
-    const reqBody = new LoginDto(req.body);
-    if ((await validate(reqBody)).length > 0) {
-      throw new HttpError("Invalid Input", 400);
-    }
+  @RequestBodyValidator(LoginDto)
+  async login(req: Request<LoginDto>, res: Response) {
+    const { username, password } = req.body;
 
-    const { username, password } = reqBody;
-
-    const user = await this.userService.get(username);
+    const user = await this.userService.getUser(username, true);
 
     if (!user) {
-      throw new HttpError("Invalid account or password", 401);
+      throw new UnauthorizedError();
     }
 
     if (user.password !== password) {
-      throw new HttpError("Invalid account or password", 401);
+      throw new UnauthorizedError();
     }
 
     req.session.profile = {
@@ -188,11 +173,11 @@ class AuthController {
     };
     req.session.cookie.maxAge = 1000 * 60 * 60 * 24;
 
-    res.status(200).send(reqBody);
+    res.status(200).send(req.body);
   }
 
   @ErrorHandler()
-  async logout(req, res) {
+  async logout(req: Request, res: Response) {
     req.session.destroy();
 
     res.status(200).send({});

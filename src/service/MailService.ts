@@ -1,4 +1,5 @@
 import Env from "@/config";
+import { MailTemplate, MailTemplatePayload } from "@/types/Mail";
 import buffer from "buffer";
 import fs from "fs";
 import _ from "lodash";
@@ -21,7 +22,10 @@ class MailService {
     });
   }
 
-  compileTemplate(filename, data) {
+  compileTemplate<T extends keyof MailTemplatePayload>(
+    filename: T,
+    data: MailTemplatePayload[T]
+  ) {
     const file = fs.readFileSync(
       path.resolve(path.dirname(""), `../backend/src/templates/${filename}`)
     );

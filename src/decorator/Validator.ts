@@ -1,6 +1,8 @@
+import { InvalidPayloadError } from "@/model/HttpError";
 import { Request, Response } from "@/types/Http";
+import { validate } from "class-validator";
 
-function ErrorHandler() {
+function RequestBodyValidator(shape: any) {
   return function (
     _target: any,
     _propertyKey: any,
@@ -12,9 +14,13 @@ function ErrorHandler() {
 
     if (originalFn) {
       descriptor.value = async function (...args) {
-        const [, , next] = args;
+        const [req, , next] = args;
         try {
-          return await originalFn.apply(this, args);
+          if ((await validate(new shape(req.body))).length > 0) {
+            throw new InvalidPayloadError();
+          } else {
+            return await originalFn.apply(this, args);
+          }
         } catch (e) {
           next(e);
         }
@@ -25,4 +31,4 @@ function ErrorHandler() {
   };
 }
 
-export default ErrorHandler;
+export default RequestBodyValidator;

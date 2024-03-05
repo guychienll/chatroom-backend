@@ -1,14 +1,23 @@
-import { IsNumber, IsString, IsUrl } from "class-validator";
+import { Gender, Profile } from "@/types/User";
+import { IsUrl } from "class-validator";
 
 class UserUpdateDto {
+  constructor(profile: Profile) {
+    this.avatar = profile.avatar;
+    this.nickname = profile.nickname;
+    this.birthday = profile.birthday;
+    this.gender = profile.gender;
+    this.bio = profile.bio;
+  }
+
   @IsUrl()
   avatar: string;
 
-  nickname: number;
+  nickname: string;
 
   birthday: string;
 
-  gender: "male" | "female" | "other";
+  gender: Gender;
 
   bio: string;
 }

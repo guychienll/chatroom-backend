@@ -1,4 +1,5 @@
-import { OtpType } from "@/types/OtpType";
+import { OtpType } from "@/types/Auth";
+import { User } from "@/types/User";
 import { IsEmail, IsNotEmpty, IsString } from "class-validator";
 
 class GenerateOtpDto {
@@ -12,7 +13,13 @@ class GenerateOtpDto {
   /**
    *
    */
-  constructor({ username, otpType }) {
+  constructor({
+    username,
+    otpType,
+  }: {
+    username: User["username"];
+    otpType: OtpType;
+  }) {
     this.username = username;
     this.otpType = otpType;
   }

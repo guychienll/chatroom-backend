@@ -1,4 +1,4 @@
-import { OtpType } from "@/types/OtpType";
+import { OtpType } from "@/types/Auth";
 import { IsString, Length } from "class-validator";
 
 class ConsumeOtpDto {
@@ -8,7 +8,7 @@ class ConsumeOtpDto {
   @IsString()
   type: OtpType;
 
-  constructor({ otp, type }) {
+  constructor({ otp, type }: { otp: string; type: OtpType }) {
     this.otp = otp;
     this.type = type;
   }

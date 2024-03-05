@@ -1,4 +1,3 @@
-import AuthController from "@/controller/AuthController";
 import UserController from "@/controller/UserController";
 import UserService from "@/service/UserService";
 import { Router } from "express";

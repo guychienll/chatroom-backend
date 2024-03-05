@@ -1,13 +1,52 @@
 import ChatService from "@/service/ChatService";
-import Room from "@/types/Room";
+import { Room } from "@/types/Room";
 import { v4 as uuid } from "uuid";
-import { Server } from "ws";
+import { Server, WebSocket } from "ws";
+
+enum MessageAction {
+  SEND_MESSAGE = "send_message",
+  JOIN_ROOM = "join_room",
+  WAIT = "wait",
+  LEAVE_ROOM = "leave_room",
+}
+
+type MessageTransferObj<T extends MessageAction> = {
+  action: T;
+  payload: MessagePayload[T];
+};
+
+type MessagePayload = {
+  [MessageAction.SEND_MESSAGE]: {
+    id: string;
+    type: string;
+    uid: string;
+    message: string;
+    date: string;
+    user: string;
+    room: Room;
+  };
+  [MessageAction.JOIN_ROOM]: {
+    username: string;
+    room: Room;
+  };
+  [MessageAction.WAIT]: {
+    username: string;
+  };
+  [MessageAction.LEAVE_ROOM]: {
+    username: string;
+  };
+};
+
+type Client = {
+  username: string;
+  ws: WebSocket;
+};
 
 class WebSocketController {
   private webSocketServer: Server;
   private chatService: ChatService;
-  private matchingQueue = [];
-  private clients = [];
+  private matchingQueue: Room[] = [];
+  private clients: Client[] = [];
 
   constructor(webSocketServer: Server, chatService: ChatService) {
     this.webSocketServer = webSocketServer;
@@ -26,32 +65,49 @@ class WebSocketController {
     });
   }
 
-  onMessage(ws) {
-    ws.on("message", async (data) => {
-      const _data = JSON.parse(data.toString());
+  onMessage(ws: WebSocket) {
+    ws.on("message", async (data: string) => {
+      const _data: MessageTransferObj<MessageAction> = JSON.parse(
+        data.toString()
+      );
 
-      const ACTION_LOOKUP = {
-        send_message: this.sendMessage,
-        join_room: this.joinRoom,
-        wait: this.wait,
-        leave_room: this.leaveRoom,
-      };
-
-      if (ACTION_LOOKUP[_data.action]) {
-        ACTION_LOOKUP[_data.action](ws, _data);
-      } else {
-        console.error(
-          `${JSON.stringify(_data, null, 2)}\nNot match any type of action`
-        );
+      switch (_data.action) {
+        case MessageAction.SEND_MESSAGE:
+          this.sendMessage(
+            ws,
+            _data as MessageTransferObj<MessageAction.SEND_MESSAGE>
+          );
+          break;
+        case MessageAction.JOIN_ROOM:
+          this.joinRoom(
+            ws,
+            _data as MessageTransferObj<MessageAction.JOIN_ROOM>
+          );
+          break;
+        case MessageAction.WAIT:
+          this.wait(ws, _data as MessageTransferObj<MessageAction.WAIT>);
+          break;
+        case MessageAction.LEAVE_ROOM:
+          this.leaveRoom(
+            ws,
+            _data as MessageTransferObj<MessageAction.LEAVE_ROOM>
+          );
+          break;
+        default:
+          console.error(
+            `${JSON.stringify(_data, null, 2)}\nNot match any type of action`
+          );
       }
     });
   }
 
-  private send(ws, data) {
+  //TODO: add data type
+  private send(ws: WebSocket, data: any) {
     ws.send(JSON.stringify(data));
   }
 
-  private broadcastToRoom(room: Room, data) {
+  //TODO: add data type
+  private broadcastToRoom(room: Room, data: any) {
     const clientsInTargetRoom = this.clients.filter((c) =>
       room.uids.includes(c.username)
     );
@@ -61,7 +117,10 @@ class WebSocketController {
     });
   }
 
-  private async sendMessage(_ws, data) {
+  private async sendMessage(
+    _ws: WebSocket,
+    data: MessageTransferObj<MessageAction.SEND_MESSAGE>
+  ) {
     const message = {
       id: data.payload.id,
       type: data.payload.type,
@@ -73,6 +132,11 @@ class WebSocketController {
 
     const room = await this.chatService.getRoom(data.payload.room.id);
 
+    if (!room) {
+      // TODO: handle websocket error
+      throw new Error("entity not found: room");
+    }
+
     room.messages.push(message);
     await this.chatService.updateRoom(room);
 
@@ -82,7 +146,10 @@ class WebSocketController {
     });
   }
 
-  private async joinRoom(ws, data) {
+  private async joinRoom(
+    ws: WebSocket,
+    data: MessageTransferObj<MessageAction.JOIN_ROOM>
+  ) {
     this.clients.push({ username: data.payload.username, ws });
     const roomId = data.payload.room.id;
     const room = await this.chatService.getRoom(roomId);
@@ -93,7 +160,10 @@ class WebSocketController {
     });
   }
 
-  private async wait(ws, data) {
+  private async wait(
+    ws: WebSocket,
+    data: MessageTransferObj<MessageAction.WAIT>
+  ) {
     this.clients.push({ username: data.payload.username, ws });
 
     const matchIdx = this.matchingQueue.findIndex(
@@ -108,8 +178,8 @@ class WebSocketController {
       ]);
 
       if (existRoom) {
-        this.matchingQueue[matchIdx] = null;
-        this.matchingQueue = this.matchingQueue.filter((item) => item !== null);
+        delete this.matchingQueue[matchIdx];
+        this.matchingQueue = this.matchingQueue.filter((item) => !!item);
 
         this.broadcastToRoom(existRoom, {
           action: "joined_room",
@@ -136,7 +206,10 @@ class WebSocketController {
     }
   }
 
-  private async leaveRoom(ws, data) {
+  private async leaveRoom(
+    ws: WebSocket,
+    data: MessageTransferObj<MessageAction.LEAVE_ROOM>
+  ) {
     const idx = this.clients.findIndex(
       (client) => client.username === data.payload.username
     );
@@ -150,7 +223,7 @@ class WebSocketController {
     ws.close();
   }
 
-  private onClose(ws) {
+  private onClose(ws: WebSocket) {
     ws.on("close", () => {
       console.log("closed");
     });

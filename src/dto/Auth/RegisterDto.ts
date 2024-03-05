@@ -1,3 +1,4 @@
+import { User } from "@/types/User";
 import { IsEmail, Length } from "class-validator";
 
 class RegisterDto {
@@ -7,7 +8,10 @@ class RegisterDto {
   @Length(8, 20)
   password: string;
 
-  constructor({ username, password }) {
+  constructor({
+    username,
+    password,
+  }: Required<Pick<User, "username" | "password">>) {
     this.username = username;
     this.password = password;
   }

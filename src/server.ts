@@ -6,9 +6,7 @@ import cors from "cors";
 import express from "express";
 import session from "express-session";
 import "source-map-support/register";
-import SocketServer from "ws";
-import WebSocketController from "./controller/WebSocketController";
-import ChatService from "./service/ChatService";
+import { Request, Response } from "./types/Http";
 
 const app = express();
 
@@ -39,7 +37,7 @@ app.use(
 
 router.use(app);
 
-app.use((err, _req, res, _next) => {
+app.use((err: any, _req: Request, res: Response, _next: any) => {
   err && console.log(err);
   res.status(err.status || 500).send({
     code: err.message || "Internal Server Error",

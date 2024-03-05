@@ -1,5 +1,6 @@
 import Env from "@/config";
 import ErrorHandler from "@/decorator/ErrorHandler";
+import { Request, Response } from "@/types/Http";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import busboy from "busboy";
@@ -13,7 +14,7 @@ class FileController {
   }
 
   @ErrorHandler()
-  async upload(req, res) {
+  async upload(req: Request, res: Response) {
     const { headers } = req;
     const bb = busboy({ headers });
 

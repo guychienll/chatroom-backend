@@ -1,34 +1,37 @@
 import db from "@/db";
+import { Profile, User } from "@/types/User";
 import _ from "lodash";
+import { converter } from "@/util/converter";
 
 export default class UserService {
   constructor() {}
 
-  async getUsers({ uids }) {
-    let users = [];
+  async getUsers({ uids }: { uids: User["username"][] }) {
+    const users: User[] = [];
 
     if (uids.length <= 0) {
-      return users;
+      return [];
     }
+
     const snapshot = await db
       .collection("user")
+      .withConverter(converter<User>())
       .where("username", "in", uids)
       .get();
 
     snapshot.forEach((doc) => {
       const _user = doc.data();
-      const { password, ...rest } = _user;
-      users.push(rest);
+      delete _user.password;
+      users.push(_user);
     });
 
-    users = _.sortBy(users, (obj) => _.indexOf(uids, obj.username));
-
-    return users;
+    return _.sortBy(users, (obj) => _.indexOf(uids, obj.username));
   }
 
-  async getUser(username) {
+  async getUser(username: User["username"], withPassword?: boolean) {
     const snapshot = await db
       .collection("user")
+      .withConverter(converter<User>())
       .where("username", "==", username)
       .get();
 
@@ -36,75 +39,72 @@ export default class UserService {
       return null;
     }
 
-    let user = null;
+    const users: User[] = [];
+
     snapshot.forEach((doc) => {
-      if (!user) {
-        user = doc.data();
-      }
+      const _user = doc.data();
+      !withPassword && delete _user.password;
+      users.push(_user);
     });
 
-    const { password, ...rest } = user;
-
-    return rest;
+    return users.shift() ?? null;
   }
 
-  async add(user) {
+  async add(user: Required<Pick<User, "username" | "password">>) {
     await db.collection("user").add({
       username: user.username,
       password: user.password,
     });
   }
 
-  async update(username, profile) {
+  async update(username: User["username"], profile: Profile) {
     const snapshot = await db
       .collection("user")
+      .withConverter(converter<User>())
       .where("username", "==", username)
       .get();
-    let uid = null;
+
+    const ids: string[] = [];
+
     snapshot.forEach((doc) => {
-      if (!uid) {
-        uid = doc.id;
-      }
+      ids.push(doc.id);
     });
 
-    db.collection("user").doc(uid).update(profile);
-  }
+    const id = ids.shift();
 
-  async updatePassword(username, password) {
-    const snapshot = await db
-      .collection("user")
-      .where("username", "==", username)
-      .get();
-
-    let uid = null;
-    snapshot.forEach((doc) => {
-      if (!uid) {
-        uid = doc.id;
-      }
-    });
-
-    db.collection("user").doc(uid).update({
-      password,
-    });
-  }
-
-  async get(username) {
-    const snapshot = await db
-      .collection("user")
-      .where("username", "==", username)
-      .get();
-
-    if (snapshot.empty) {
-      return null;
+    if (!id) {
+      return;
     }
 
-    let user = null;
+    db.collection("user")
+      .withConverter(converter<User>())
+      .doc(id)
+      .update(profile);
+  }
+
+  async updatePassword(
+    username: User["username"],
+    password: Required<User["password"]>
+  ) {
+    const snapshot = await db
+      .collection("user")
+      .where("username", "==", username)
+      .get();
+
+    const ids: string[] = [];
+
     snapshot.forEach((doc) => {
-      if (!user) {
-        user = doc.data();
-      }
+      ids.push(doc.id);
     });
 
-    return user;
+    const id = ids.shift();
+
+    if (!id) {
+      return;
+    }
+
+    db.collection("user").withConverter(converter<User>()).doc(id).update({
+      password,
+    });
   }
 }

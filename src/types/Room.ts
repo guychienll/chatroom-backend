@@ -1,3 +1,3 @@
-type Room = { id: string; uids: string[]; messages: any[] };
+import { User } from "@/types/User";
 
-export default Room;
+export type Room = { id: string; uids: User["username"][]; messages: any[] };
