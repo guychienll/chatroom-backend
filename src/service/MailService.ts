@@ -27,9 +27,7 @@ class MailService implements IMailService {
     filename: T,
     data: MailTemplatePayload[T]
   ) {
-    const file = fs.readFileSync(
-      path.resolve(path.dirname(""), `../backend/src/templates/${filename}`)
-    );
+    const file = fs.readFileSync(path.resolve(`./templates/${filename}`));
 
     const source = buffer.Buffer.from(file as any, "base64").toString("utf-8");
 
