@@ -16,7 +16,7 @@ app.use(
   session({
     secret: Env.SESSION_SECRET,
     cookie: {
-      secure: false,
+      secure: true,
       maxAge: 60 * 1000,
       httpOnly: true,
     },
