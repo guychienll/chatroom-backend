@@ -1,28 +1,28 @@
 import ErrorHandler from "@/decorator/ErrorHandler";
-import RequestBodyValidator from "@/decorator/Validator";
+import { RequestBodyValidator } from "@/decorator/Validator";
 import ConsumeOtpDto from "@/dto/Auth/ConsumeOtpDto";
 import GenerateOtpDto from "@/dto/Auth/GenerateOtpDto";
 import LoginDto from "@/dto/Auth/LoginDto";
 import RegisterDto from "@/dto/Auth/RegisterDto";
+import IMailService from "@/interface/IMailService";
+import IUserService from "@/interface/IUserService";
 import {
   ConflictError,
   EntityNotFoundError,
   TooManyRequestsError,
   UnauthorizedError,
 } from "@/model/HttpError";
-import MailService from "@/service/MailService";
-import UserService from "@/service/UserService";
+import { OtpType } from "@/types/Auth";
 import { Request, Response } from "@/types/Http";
 import { MailTemplate } from "@/types/Mail";
-import { OtpType } from "@/types/Auth";
 import OtpGenerator from "otp-generator";
 import UpdatePasswordDto from "../dto/Auth/UpdatePasswordDto";
 
 class AuthController {
-  private userService: UserService;
-  private mailService: MailService;
+  private userService: IUserService;
+  private mailService: IMailService;
 
-  constructor(userService: UserService, mailService: MailService) {
+  constructor(userService: IUserService, mailService: IMailService) {
     this.userService = userService;
     this.mailService = mailService;
     this.generateOtp = this.generateOtp.bind(this);
@@ -76,9 +76,10 @@ class AuthController {
   @ErrorHandler()
   @RequestBodyValidator(ConsumeOtpDto)
   async consumeOtp(req: Request<ConsumeOtpDto>, res: Response) {
-    const { otp, type } = req.body;
+    console.log(req.body);
+    const { otp, otpType } = req.body;
 
-    if (!!req.session.otpType && req.session.otpType !== type) {
+    if (!!req.session.otpType && req.session.otpType !== otpType) {
       throw new UnauthorizedError();
     }
 
@@ -97,7 +98,9 @@ class AuthController {
   @RequestBodyValidator(UpdatePasswordDto)
   async updatePassword(req: Request<UpdatePasswordDto>, res: Response) {
     const { password, otp, otpType } = req.body;
-    const username = req.session.username;
+    if (!req.session.username) {
+      throw new UnauthorizedError();
+    }
 
     if (!!req.session.otpType && req.session.otpType !== otpType) {
       throw new UnauthorizedError();
@@ -106,6 +109,8 @@ class AuthController {
     if (!req.session.otp || req.session.otp !== otp) {
       throw new UnauthorizedError();
     }
+
+    const username = req.session.username;
 
     await this.userService.updatePassword(username, password);
 
@@ -178,7 +183,9 @@ class AuthController {
 
   @ErrorHandler()
   async logout(req: Request, res: Response) {
-    req.session.destroy();
+    req.session.destroy(() => {
+      console.log("session destroyed");
+    });
 
     res.status(200).send({});
   }

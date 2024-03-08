@@ -1,4 +1,4 @@
-import ChatService from "@/service/ChatService";
+import IChatService from "@/interface/IChatService";
 import { Room } from "@/types/Room";
 import { v4 as uuid } from "uuid";
 import { Server, WebSocket } from "ws";
@@ -44,11 +44,11 @@ type Client = {
 
 class WebSocketController {
   private webSocketServer: Server;
-  private chatService: ChatService;
+  private chatService: IChatService;
   private matchingQueue: Room[] = [];
   private clients: Client[] = [];
 
-  constructor(webSocketServer: Server, chatService: ChatService) {
+  constructor(webSocketServer: Server, chatService: IChatService) {
     this.webSocketServer = webSocketServer;
     this.chatService = chatService;
     this.onMessage = this.onMessage.bind(this);

@@ -10,18 +10,9 @@ class GenerateOtpDto {
   @IsString()
   otpType: OtpType;
 
-  /**
-   *
-   */
-  constructor({
-    username,
-    otpType,
-  }: {
-    username: User["username"];
-    otpType: OtpType;
-  }) {
-    this.username = username;
-    this.otpType = otpType;
+  constructor(props: { username: User["username"]; otpType: OtpType }) {
+    this.username = props.username;
+    this.otpType = props.otpType;
   }
 }
 

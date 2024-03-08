@@ -2,8 +2,9 @@ import { User } from "@/types/User";
 import db from "@/db";
 import { Room } from "@/types/Room";
 import { converter } from "@/util/converter";
+import IChatService from "@/interface/IChatService";
 
-class ChatService {
+class ChatService implements IChatService {
   constructor() {}
 
   async getUserRooms(username: User["username"]) {

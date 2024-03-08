@@ -1,9 +1,10 @@
 import db from "@/db";
 import { Profile, User } from "@/types/User";
-import _ from "lodash";
 import { converter } from "@/util/converter";
+import _ from "lodash";
+import IUserService from "../interface/IUserService";
 
-export default class UserService {
+export default class UserService implements IUserService {
   constructor() {}
 
   async getUsers({ uids }: { uids: User["username"][] }) {

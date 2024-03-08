@@ -1,19 +1,16 @@
 import ErrorHandler from "@/decorator/ErrorHandler";
+import { RequestBodyValidator } from "@/decorator/Validator";
 import UserUpdateDto from "@/dto/User/UserUpdateDto";
-import HttpError, {
-  EntityNotFoundError,
-  SessionTimeoutError,
-} from "@/model/HttpError";
-import UserService from "@/service/UserService";
+import IUserService from "@/interface/IUserService";
+import { EntityNotFoundError, SessionTimeoutError } from "@/model/HttpError";
 import { Request, Response } from "@/types/Http";
-import { GetUsersDto } from "../dto/User/GetUsersDto";
 import { User } from "@/types/User";
-import RequestBodyValidator from "@/decorator/Validator";
+import { GetUsersDto } from "../dto/User/GetUsersDto";
 
 class UserController {
-  private userService: UserService;
+  private userService: IUserService;
 
-  constructor(userService: UserService) {
+  constructor(userService: IUserService) {
     this.userService = userService;
     this.profile = this.profile.bind(this);
     this.update = this.update.bind(this);
@@ -41,7 +38,9 @@ class UserController {
   @RequestBodyValidator(UserUpdateDto)
   async update(req: Request<UserUpdateDto>, res: Response) {
     if (!req.session.profile) {
-      req.session.destroy();
+      req.session.destroy(() => {
+        console.log("session destroyed");
+      });
       throw new SessionTimeoutError();
     }
 

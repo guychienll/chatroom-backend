@@ -6,11 +6,11 @@ class ConsumeOtpDto {
   otp: string;
 
   @IsString()
-  type: OtpType;
+  otpType: OtpType;
 
-  constructor({ otp, type }: { otp: string; type: OtpType }) {
-    this.otp = otp;
-    this.type = type;
+  constructor(props: { otp: string; otpType: OtpType }) {
+    this.otp = props.otp;
+    this.otpType = props.otpType;
   }
 }
 

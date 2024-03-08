@@ -1,8 +1,7 @@
-import { InvalidPayloadError } from "@/model/HttpError";
+import { UnauthorizedError } from "@/model/HttpError";
 import { Request, Response } from "@/types/Http";
-import { validate } from "class-validator";
 
-function RequestBodyValidator(shape: any) {
+function AuthGuard() {
   return function (
     _target: any,
     _propertyKey: any,
@@ -16,12 +15,10 @@ function RequestBodyValidator(shape: any) {
       descriptor.value = async function (...args) {
         const [req, , next] = args;
         try {
-          const instance = new shape(req.body);
-          if ((await validate(instance)).length > 0) {
-            throw new InvalidPayloadError();
-          } else {
-            return await originalFn.apply(this, args);
+          if (!req.session.profile) {
+            throw new UnauthorizedError();
           }
+          return await originalFn.apply(this, args);
         } catch (e) {
           next(e);
         }
@@ -32,4 +29,4 @@ function RequestBodyValidator(shape: any) {
   };
 }
 
-export { RequestBodyValidator };
+export default AuthGuard;

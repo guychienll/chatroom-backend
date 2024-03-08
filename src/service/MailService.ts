@@ -1,5 +1,6 @@
 import Env from "@/config";
-import { MailTemplate, MailTemplatePayload } from "@/types/Mail";
+import IMailService from "@/interface/IMailService";
+import { MailTemplatePayload } from "@/types/Mail";
 import buffer from "buffer";
 import fs from "fs";
 import _ from "lodash";
@@ -7,8 +8,8 @@ import nodemailer from "nodemailer";
 import { SentMessageInfo } from "nodemailer/lib/smtp-transport";
 import path from "path";
 
-class MailService {
-  private transporter: nodemailer.Transporter<SentMessageInfo>;
+class MailService implements IMailService {
+  transporter: nodemailer.Transporter<SentMessageInfo>;
 
   constructor() {
     this.transporter = nodemailer.createTransport({

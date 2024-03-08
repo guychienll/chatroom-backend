@@ -8,12 +8,9 @@ class RegisterDto {
   @Length(8, 20)
   password: string;
 
-  constructor({
-    username,
-    password,
-  }: Required<Pick<User, "username" | "password">>) {
-    this.username = username;
-    this.password = password;
+  constructor(props: Required<Pick<User, "username" | "password">>) {
+    this.username = props.username;
+    this.password = props.password;
   }
 }
 

@@ -2,14 +2,6 @@ import { Gender, Profile } from "@/types/User";
 import { IsUrl } from "class-validator";
 
 class UserUpdateDto {
-  constructor(profile: Profile) {
-    this.avatar = profile.avatar;
-    this.nickname = profile.nickname;
-    this.birthday = profile.birthday;
-    this.gender = profile.gender;
-    this.bio = profile.bio;
-  }
-
   @IsUrl()
   avatar: string;
 
@@ -20,6 +12,14 @@ class UserUpdateDto {
   gender: Gender;
 
   bio: string;
+
+  constructor(props: Profile) {
+    this.avatar = props.avatar;
+    this.nickname = props.nickname;
+    this.birthday = props.birthday;
+    this.gender = props.gender;
+    this.bio = props.bio;
+  }
 }
 
 export default UserUpdateDto;
