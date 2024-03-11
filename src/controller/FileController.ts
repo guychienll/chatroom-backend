@@ -28,10 +28,10 @@ class FileController {
         },
       });
 
-      const result = await uploadEvent.done();
+      await uploadEvent.done();
 
       res.status(201).json({
-        file_url: result.Location,
+        file_url: `https://chatroom-cdn.guychienll.dev/${info.filename}`,
       });
     });
 
