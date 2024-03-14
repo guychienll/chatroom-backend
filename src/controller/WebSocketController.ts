@@ -225,6 +225,12 @@ class WebSocketController {
 
   private onClose(ws: WebSocket) {
     ws.on("close", () => {
+      const client = this.clients.find((client) => client.ws === ws);
+      if (client) {
+        this.matchingQueue = this.matchingQueue.filter(
+          (item) => !item.uids.includes(client.username)
+        );
+      }
       this.clients = this.clients.filter((client) => client.ws !== ws);
       console.log("closed");
     });
