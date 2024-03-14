@@ -225,6 +225,7 @@ class WebSocketController {
 
   private onClose(ws: WebSocket) {
     ws.on("close", () => {
+      this.clients = this.clients.filter((client) => client.ws !== ws);
       console.log("closed");
     });
   }
