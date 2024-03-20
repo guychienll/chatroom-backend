@@ -16,23 +16,45 @@ class FileController {
   @ErrorHandler()
   async upload(req: Request, res: Response) {
     const { headers } = req;
+
     const bb = busboy({ headers });
 
+    const fields: {
+      pathname: string;
+    } & { [key: string]: unknown } = {
+      pathname: "",
+    };
+
+    const buffers: Uint8Array[] = [];
+    let fullFilePath = "";
+
+    bb.on("field", async (name, value) => {
+      fields[name] = value;
+    });
+
     bb.on("file", async (_name, file, info) => {
-      const uploadEvent = new Upload({
-        client: this.client,
-        params: {
-          Bucket: Env.AWS_S3_BUCKET_NAME,
-          Key: info.filename,
-          Body: file,
-        },
-      });
+      file
+        .on("data", (data) => {
+          buffers.push(data);
+        })
+        .on("end", async () => {
+          fullFilePath = `${fields.pathname}${info.filename}`;
 
-      await uploadEvent.done();
+          const uploadEvent = new Upload({
+            client: this.client,
+            params: {
+              Bucket: Env.AWS_S3_BUCKET_NAME,
+              Key: fullFilePath,
+              Body: Buffer.concat(buffers),
+            },
+          });
 
-      res.status(201).json({
-        file_url: `https://chatroom-cdn.guychienll.dev/${info.filename}`,
-      });
+          await uploadEvent.done();
+
+          res.json({
+            file_url: `https://chatroom-cdn.guychienll.dev/${fullFilePath}`,
+          });
+        });
     });
 
     req.pipe(bb);
