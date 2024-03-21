@@ -8,6 +8,8 @@ enum MessageAction {
   JOIN_ROOM = "join_room",
   WAIT = "wait",
   LEAVE_ROOM = "leave_room",
+  TYPING = "typing",
+  STOP_TYPING = "stop_typing",
 }
 
 type MessageTransferObj<T extends MessageAction> = {
@@ -35,6 +37,14 @@ type MessagePayload = {
   [MessageAction.LEAVE_ROOM]: {
     username: string;
   };
+  [MessageAction.TYPING]: {
+    username: string;
+    room: Room;
+  };
+  [MessageAction.STOP_TYPING]: {
+    username: string;
+    room: Room;
+  };
 };
 
 type Client = {
@@ -58,6 +68,8 @@ class WebSocketController {
     this.wait = this.wait.bind(this);
     this.leaveRoom = this.leaveRoom.bind(this);
     this.send = this.send.bind(this);
+    this.typing = this.typing.bind(this);
+    this.stopTyping = this.stopTyping.bind(this);
 
     this.webSocketServer.on("connection", (ws) => {
       this.onMessage(ws);
@@ -86,6 +98,15 @@ class WebSocketController {
           break;
         case MessageAction.WAIT:
           this.wait(ws, _data as MessageTransferObj<MessageAction.WAIT>);
+          break;
+        case MessageAction.TYPING:
+          this.typing(ws, _data as MessageTransferObj<MessageAction.TYPING>);
+          break;
+        case MessageAction.STOP_TYPING:
+          this.stopTyping(
+            ws,
+            _data as MessageTransferObj<MessageAction.STOP_TYPING>
+          );
           break;
         case MessageAction.LEAVE_ROOM:
           this.leaveRoom(
@@ -142,6 +163,62 @@ class WebSocketController {
     this.broadcastToRoom(room, {
       ...data,
       action: "receive_message",
+    });
+  }
+
+  private async typing(
+    ws: WebSocket,
+    data: MessageTransferObj<MessageAction.TYPING>
+  ) {
+    const room = await this.chatService.getRoom(data.payload.room.id);
+
+    if (!room) {
+      // TODO: handle websocket error
+      throw new Error("entity not found: room");
+    }
+
+    const clientsInTargetRoom = this.clients.filter((c) =>
+      room.uids.includes(c.username)
+    );
+
+    const targetClient = clientsInTargetRoom.find(
+      (client) => client.username !== data.payload.username
+    );
+
+    if (!targetClient) {
+      return;
+    }
+
+    this.send(targetClient.ws, {
+      action: "receive_typing",
+    });
+  }
+
+  private async stopTyping(
+    ws: WebSocket,
+    data: MessageTransferObj<MessageAction.STOP_TYPING>
+  ) {
+    const room = await this.chatService.getRoom(data.payload.room.id);
+
+    if (!room) {
+      // TODO: handle websocket error
+      throw new Error("entity not found: room");
+    }
+
+    const clientsInTargetRoom = this.clients.filter((c) =>
+      room.uids.includes(c.username)
+    );
+
+    const targetClient = clientsInTargetRoom.find(
+      (client) => client.username !== data.payload.username
+    );
+
+    if (!targetClient) {
+      return;
+    }
+
+    this.send(targetClient.ws, {
+      action: "receive_stop_typing",
     });
   }
 
