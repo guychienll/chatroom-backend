@@ -127,7 +127,6 @@ class WebSocketController {
       uid: data.payload.uid,
       message: data.payload.message,
       date: data.payload.date,
-      user: data.payload.user,
     };
 
     const room = await this.chatService.getRoom(data.payload.room.id);

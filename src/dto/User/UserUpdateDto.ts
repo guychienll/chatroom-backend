@@ -1,8 +1,6 @@
 import { Gender, Profile } from "@/types/User";
-import { IsUrl } from "class-validator";
 
 class UserUpdateDto {
-  @IsUrl()
   avatar: string;
 
   nickname: string;
